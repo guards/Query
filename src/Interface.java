@@ -3,8 +3,11 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.awt.Dialog;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.Writer;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -36,10 +39,6 @@ import javax.swing.table.DefaultTableModel;
  */
 public class Interface extends javax.swing.JFrame 
 {
-
-    /**
-     * Creates new form Inteface
-     */
     public Interface() throws SQLException
     {
         // ORDER START
@@ -56,7 +55,6 @@ public class Interface extends javax.swing.JFrame
           resizeHistoryTabe1();
           resizeHistoryTabe2();
         //HISTORY END
-        
     }
  
     /**
@@ -476,7 +474,7 @@ public class Interface extends javax.swing.JFrame
         New.setName("CreatNew"); // NOI18N
         New.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                NewMouseClicked(evt);
+                newInvoice(evt);
             }
         });
         MENU.add(New);
@@ -490,7 +488,7 @@ public class Interface extends javax.swing.JFrame
         });
         MENU.add(Save);
 
-        Print.setText("Print");
+        Print.setText("Save to File");
         Print.setName("Print"); // NOI18N
         Print.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -514,26 +512,7 @@ public class Interface extends javax.swing.JFrame
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void NewMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_NewMouseClicked
-            personName.setText("");
-            personAdress.setText("");
-            personPhone.setText("");
-            
-            DefaultTableModel model = (DefaultTableModel) myTable.getModel();
-            model.setRowCount(0);
-            model.setRowCount(1);
-            GoodsValue.setText("0,00");
-            VAT.setText("0,00");
-            TOTALSUM.setText("0.00");
-            cash.setSelected(false);
-            credit.setSelected(false);
-            showID();
-       
-        
-    }//GEN-LAST:event_NewMouseClicked
-
     private void AddNewLine(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_AddNewLine
-        
         DefaultTableModel model = (DefaultTableModel) myTable.getModel();
         model.setRowCount(model.getRowCount()+1);
         showID();
@@ -541,42 +520,48 @@ public class Interface extends javax.swing.JFrame
     }//GEN-LAST:event_AddNewLine
 
     private void ClearTable(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_ClearTable
-
         JFrame tempFrame = new JFrame();
         int dialogResult = JOptionPane.showConfirmDialog(tempFrame,
-    "Erase table content?",
-    "Warrning!!!",
-    JOptionPane.YES_NO_OPTION);
-        if(dialogResult == JOptionPane.YES_OPTION)
+                "Erase table content?",
+                "Warrning!!!",
+                JOptionPane.YES_NO_OPTION);
+        if (dialogResult == JOptionPane.YES_OPTION) 
         {
             DefaultTableModel model = (DefaultTableModel) myTable.getModel();
             model.setRowCount(0);
             model.setRowCount(1);
+            showID();
             GoodsValue.setText("");
             VAT.setText("");
             TOTALSUM.setText("");
         }
-        showID();
+        
     }//GEN-LAST:event_ClearTable
 
     private void saveOrder(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_saveOrder
         try {
-            //System.out.println("EXEC QUERY");
             DefaultTableModel tm = (DefaultTableModel)myTable.getModel();
             Connection con = dbConnection();
             //save order
-            String paymentType;
-            if(cash.isSelected()){
+            String paymentType = "";
+            if (cash.isSelected()) 
+            {
                 paymentType = "cash";
-            }else{
+            } 
+            if(credit.isSelected()) 
+            {
                 paymentType = "credit";
             }
             String pName = personName.getText();
             String pAddres = personAdress.getText();
             String pPhone = personPhone.getText();
             String gVal = GoodsValue.getText();
-            if( (gVal.compareTo("0,00") != 0) && (pName.compareTo("") != 0) && (pAddres.compareTo("") != 0) && (pPhone.compareTo("") != 0))
-            {
+            //proverka za prazni poleta
+            if(     (gVal.compareTo("0,00") != 0) 
+                 && (pName.compareTo("") != 0)
+                 && (pAddres.compareTo("") != 0) 
+                 && (pPhone.compareTo("") != 0))
+            {//zapisva nachalnata tablica
                 String query = "INSERT INTO `order` (`id`,`name`,`adress`,`phone`,`paymentType`,`total`,`vat`,`total_sum`) "
                         + "VALUES ('" + invNo.getText() + "', "
                         + "'" + pName + "', "
@@ -587,19 +572,18 @@ public class Interface extends javax.swing.JFrame
                         + "'" + VAT.getText() + "', "
                         + "'" + TOTALSUM.getText() + "')";
                 Statement st = (Statement) con.createStatement();
+                st.executeUpdate(query);// izpulnqva gorevavedenata zaqvka
                 
-                st.executeUpdate(query);
                 //END OF SAVE ORDER
+                
+                //zapisva v pod tablicata
                 for(int i = 0; i < tm.getRowCount(); i++)
                 {
                     Object prName = tm.getValueAt(i, 1);
                     Object kg = tm.getValueAt(i, 2);
                     Object pricePerUnit = tm.getValueAt(i, 3);
                     Object total = tm.getValueAt(i, 4);
-                    if(prName != null && kg != null && pricePerUnit != null)
-                        System.out.println("is null");
-                    else
-                        System.out.println("is not null");
+                    //proverka za prazni redove v tablicata
                     if(prName != null && kg != null && pricePerUnit != null)
                     {
                         System.out.println("passed the check");
@@ -615,66 +599,110 @@ public class Interface extends javax.swing.JFrame
                     }
                 }
             }
-        } catch (SQLException ex) {
+            else
+            {
+                JOptionPane.showMessageDialog(this, "There are Empty spaces");
+            }
+        } 
+        catch (SQLException ex) 
+        {
             Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-         try {
+        //dobavq v istoriqta novata zaqvka
+         try 
+         {
             initTableContent();
-        } catch (SQLException ex) {
+         } 
+         catch (SQLException ex) 
+         {
             Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+         }
     }//GEN-LAST:event_saveOrder
 
     private void showAbout(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_showAbout
-        JOptionPane.showMessageDialog(this,
-    "Version 1.0 Build 1001 \n© Invoice Maker 2012 - 2013 g.\nAll rights reserved.\nCreated by GuardsTeam");
+        JOptionPane.showMessageDialog
+           (this, " Version 1.0 Build 1001 "
+                + "\n © Invoice Maker 2012 - 2013 g."
+                + "\n All rights reserved."
+                + "\n Created by Ifchy");
     }//GEN-LAST:event_showAbout
 
     private void print(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_print
-        FileWriter fstream = null;
-        
-        try {
-            for(int i = 0 ; i<100; i++);
-            //fstream = new FileWriter("D:/out.txt");
-            fstream = new FileWriter( "D:/test/" + invNo.getText()+ ".txt" );
-            BufferedWriter out = new BufferedWriter(fstream);
-            out.write("\r\n" + "Invoice Number: " + invNo.getText() +"\r\n" );
-            out.write("Date: " + curentDate.getText() +"\r\n" );
-            out.write("Buyer Name: " + personName.getText() +"\r\n" );
-            out.write("Buyer Adress: " + personAdress.getText() +"\r\n" );
-            out.write("Buyer Phone: " + personPhone.getText() +"\r\n" +"\r\n" );
-            out.write( "# |" + "Product name   |" + "Kg |" + "€ per Kg   |" + "Price" +"\r\n");
-            
-            for ( int i =0 ;i < myTable.getRowCount(); i++ )
+            FileWriter fstream = null;
+            try
             {
-                out.write(
-                        myTable.getValueAt(i,0)+ " "
-                        + myTable.getValueAt(i,1) + "   "
-                        + myTable.getValueAt(i,2) + "   "
-                        + myTable.getValueAt(i,3) + "   "
-                        + myTable.getValueAt(i,4) + "   "
-                        +"\r\n" );
-            }
-            out.write("\r\n" + "Goods Value: " + GoodsValue.getText() +"\r\n" );
-            out.write("V.A.T: " + VAT.getText() +"\r\n" );
-            out.write("TOTAL: " + TOTALSUM.getText() +"\r\n" );
-            
-            out.close();
-            
-        } catch (IOException ex) {
-            Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                fstream.close();
-            } catch (IOException ex) {
+                fstream = new FileWriter( "D:/test/" + invNo.getText() + ".txt" );
+                BufferedWriter out = new BufferedWriter(fstream);
+                out.write("\r\n" + "Invoice Number: " + invNo.getText() +"\r\n" );
+                out.write("Date: " + curentDate.getText() +"\r\n" );
+                        String paymentType = "";
+                        if (cash.isSelected()) 
+                        {
+                            out.write("Payment Type: Cash" +"\r\n" );
+                        }
+                        if (credit.isSelected()) 
+                        {
+                            out.write("Payment Type: Credit" +"\r\n" );
+                        }
+                        if (!credit.isSelected() && !cash.isSelected() ) 
+                        {
+                            out.write("Payment Type: None" +"\r\n" );
+                        }
+                        
+                out.write("Buyer Name: " + personName.getText() +"\r\n" );
+                out.write("Buyer Adress: " + personAdress.getText() +"\r\n" );
+                out.write("Buyer Phone: " + personPhone.getText() +"\r\n" +"\r\n" );
+                out.write( "# |" + "Product name   |" + "Kg |" + "€ per Kg   |" + "Price" +"\r\n");
+                for ( int i =0 ;i < myTable.getRowCount(); i++ )
+                {
+                    out.write(
+                              myTable.getValueAt(i,0)+ " "
+                            + myTable.getValueAt(i,1) + "   "
+                            + myTable.getValueAt(i,2) + "   "
+                            + myTable.getValueAt(i,3) + "   "
+                            + myTable.getValueAt(i,4) + "   "
+                            +"\r\n" );
+                }
+                out.write("\r\n" + "Goods Value: " + GoodsValue.getText() +"\r\n" );
+                out.write("V.A.T: " + VAT.getText() +"\r\n" );
+                out.write("TOTAL: " + TOTALSUM.getText() +"\r\n" );
+                out.close();
+            } 
+            catch (IOException ex){}//empty
+            //4etene ot file
+            FileReader print = null;
+            try
+            {
+                print = new FileReader("D:/test/" + invNo.getText() + ".txt" );
+                BufferedReader in = new BufferedReader(print);
+                String sCurrentLine;
+                while ((sCurrentLine = in.readLine()) != null) 
+                {
+                    System.out.println(sCurrentLine);
+                }
+            } 
+            catch (IOException ex) 
+            { 
                 Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
             }
-        }
-        
     }//GEN-LAST:event_print
 
+    private void newInvoice(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_newInvoice
+            //Izchistva formata
+            cash.setSelected(false);
+            credit.setSelected(false);
+            personName.setText("");
+            personAdress.setText("");
+            personPhone.setText("");
+            DefaultTableModel model = (DefaultTableModel) myTable.getModel();
+            model.setRowCount(0);
+            model.setRowCount(1);
+            showID();
+            GoodsValue.setText("0,00");
+            VAT.setText("0,00");
+            TOTALSUM.setText("0.00");
+    }//GEN-LAST:event_newInvoice
+   
     private void addListeners() 
     {
         //myTable LISTENER
@@ -722,7 +750,8 @@ public class Interface extends javax.swing.JFrame
 
             private void updateProducts() 
             {
-                try {
+                try 
+                {
                     Connection con = dbConnection();
                     int row = historyTable1.getSelectedRow();
                     Object id = historyTable1.getValueAt(row, 0);
@@ -741,15 +770,13 @@ public class Interface extends javax.swing.JFrame
                             i,rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5)
                         });
                     }
-                } catch (SQLException ex) {
+                } 
+                catch (SQLException ex) 
+                {
                     Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            
-            
             }
         });
-        
-        
     }
     
     /**
@@ -858,8 +885,6 @@ public class Interface extends javax.swing.JFrame
     private javax.swing.JLabel vatProc;
     // End of variables declaration//GEN-END:variables
 
-    
-    //############################ORDER START#########################
     //-------------------------SET COLOMN WIDTH IN TABLE -------------
     private void resizeOrderTable()
     {
@@ -877,10 +902,7 @@ public class Interface extends javax.swing.JFrame
     {
        DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
        Date date = new Date();
-       //System.out.println(dateFormat.format(date));
-  
        curentDate.setText( dateFormat.format(date) );
-     
     }
     //----------------------END OF SHOWING CURENT TIME----------------
     
@@ -925,26 +947,23 @@ public class Interface extends javax.swing.JFrame
             if(tempObj != null)
             {
                 String stringVal = tempObj.toString();
-                if(stringVal.compareTo("") != 0){
+                if(stringVal.compareTo("") != 0)
+                {
                     double doubleVal = Double.parseDouble(stringVal);
                     sum = sum + doubleVal;
                 }
             }
         }
-        
         //calculating total
         double T = sum*1.20;
         //calculating vat only
         double V = sum*0.2;
-        
         //convert from double to string for goodsvalue
 	String s = String.format("%1$,.2f",sum);
         GoodsValue.setText( s );
-        
         //conver from double to string for vat
         String WAT = String.format("%1$,.2f",V);
         VAT.setText(WAT);
-        
         //conver from double to string for total
         String TS = String.format("%1$,.2f",T);
         TOTALSUM.setText(TS);
@@ -978,16 +997,12 @@ public class Interface extends javax.swing.JFrame
                    ,rs.getString(7),rs.getString(8),rs.getString(9)
                 });
             }
-            
-            
-        } catch (SQLException ex) 
+        }
+        catch (SQLException ex) 
         {
             Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
-    //###########################ORDER END############################
-    
     //#########################HISTORY START##########################
     //---------------SET COLOMN WIDTH IN HISTORY_TABLE_1 -------------
     private void resizeHistoryTabe1() 
@@ -1002,7 +1017,6 @@ public class Interface extends javax.swing.JFrame
         historyTable1.getColumnModel().getColumn(6).setPreferredWidth(65);
         historyTable1.getColumnModel().getColumn(7).setPreferredWidth(60);
         historyTable1.getColumnModel().getColumn(8).setPreferredWidth(65);
-       
     }
     //---------------END COLOMN WIDTH IN HISTORY_TABLE_1 -------------
      
@@ -1018,7 +1032,4 @@ public class Interface extends javax.swing.JFrame
     }
     //---------------END COLOMN WIDTH IN HISTORY_TABLE_2 -------------
      //#########################HISTORY ENDS###########################
-
-   
-    
 }
